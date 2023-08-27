@@ -1,0 +1,24 @@
+Resources:
+  ConnectionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: hook
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TableName: ${self:provider.environment.CONNECTIONS_TABLE}
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      GlobalSecondaryIndexes:
+        - IndexName: HookIndex
+          KeySchema:
+            - AttributeName: hook
+              KeyType: HASH
+          Projection:
+            ProjectionType: 'ALL'

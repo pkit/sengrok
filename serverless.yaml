@@ -1,0 +1,79 @@
+service: sengrok
+
+plugins:
+  - serverless-better-credentials
+  - serverless-iam-roles-per-function
+  - serverless-bundle
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${self:custom.region}
+  environment:
+    NAME_PREFIX: ${self:service}-${sls:stage}-
+    CONNECTIONS_TABLE: ${self:custom.connectionsTable}
+
+functions:
+  webhookListener:
+    handler: handlers/webhookListener.webhookListener
+    timeout: 20
+    maximumRetryAttempts: 0
+    events:
+      - httpApi:
+          method: POST
+          path: /{proxy+}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - lambda:InvokeFunction
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - execute-api:ManageConnections
+        Resource:
+          - !Sub "arn:aws:execute-api:${opt:region, self:provider.region}:*:${WebsocketsApi}/${sls:stage}/*"
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+        Resource:
+          - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}"
+  clientWebsocket:
+    handler: handlers/clientWebsocket.clientWebsocket
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $default
+      - websocket:
+          route: $disconnect
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - lambda:InvokeFunction
+        Resource: "*"
+      - Effect: Allow
+        Action:
+          - execute-api:ManageConnections
+        Resource:
+          - !Sub "arn:aws:execute-api:${opt:region, self:provider.region}:*:${WebsocketsApi}/${sls:stage}/*"
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+        Resource:
+          - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}"
+
+custom:
+  region: ${opt:region, 'us-east-2'}
+  connectionsTable: sengrok-connections-${sls:stage}
+  bundle:
+    disableForkTsChecker: true
+
+resources:
+  - ${file(resources/connections-table.yaml)}
