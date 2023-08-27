@@ -70,7 +70,7 @@ export class Cli {
     this.program
       .command("forward")
       .description("forward events from hook to a local service")
-      .argument("<url>", "websocket url of sengrok service")
+      .argument("<url>", "websocket url of a sengrok service")
       .argument("<hook>", "hook route to forward from, ex. /github")
       .argument("<port>", "forward to this port locally, ex. 3000")
       .option("--host <host>", "use a different hostname, instead of `localhost`")

@@ -29,6 +29,10 @@
   },
   "scripts": {
     "prepare": "./cli/build.sh",
-    "deploy": "sls deploy"
+    "deploy": "sls deploy",
+    "remove": "sls remove"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
