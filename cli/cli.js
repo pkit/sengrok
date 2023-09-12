@@ -33,9 +33,8 @@ export class Cli {
   }
 
   _setupForward() {
-    const action = async (url, hook, port, options) => {
-      const host = options.host || "http://localhost";
-      console.log(`Forwarding: ${hook} -> ${host}:${port}`);
+    const action = async (url, hook, local) => {
+      console.log(`Forwarding: ${hook} -> ${local}`);
       const ws = new WebSocket(url);
       ws.on("error", (e) => {
         console.error(e);
@@ -46,7 +45,7 @@ export class Cli {
         if (msg?.hook === hook) {
           switch (msg?.type || "") {
             case "event":
-              fetch(`${host}:${port}`, {
+              fetch(local, {
                 method: "POST",
                 headers: msg.headers,
                 body: msg.body,
@@ -72,8 +71,7 @@ export class Cli {
       .description("forward events from hook to a local service")
       .argument("<url>", "websocket url of a sengrok service")
       .argument("<hook>", "hook route to forward from, ex. /github")
-      .argument("<port>", "forward to this port locally, ex. 3000")
-      .option("--host <host>", "use a different hostname, instead of `localhost`")
+      .argument("<local>", "forward to local url, ex. http://localhost:3000/github")
       .action(this.getAction(action));
   }
 }

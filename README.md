@@ -68,9 +68,9 @@ functions:
 We are interested in the `wss://` url.
 
 ```bash
-./sengrok wss://xxxxx.execute-api.us-east-2.amazonaws.com/dev /github 3000
+./sengrok wss://xxxxx.execute-api.us-east-2.amazonaws.com/dev /github http://localhost:3000
 ```
-The command above will connect to the deployed service and forward all `/github` events to `localhost:3000`  
+The command above will connect to the deployed service and forward all `/github` events to `http://localhost:3000`  
 
 Now you can set up the webhook in actual GitHub using the second URL from above (and the route `/github`):
 ```
@@ -85,9 +85,9 @@ https://yyyyyy.execute-api.us-east-2.amazonaws.com/another/webhook/route
 ```
 
 And start another `sengrok` listener.  
-That one will forward `/another/webhook` to `localhost:3001`
+That one will forward `/another/webhook` to `http://localhost:3001/events`
 ```bash
-./sengrok wss://xxxxx.execute-api.us-east-2.amazonaws.com/dev /another/webhook/route 3001
+./sengrok wss://xxxxx.execute-api.us-east-2.amazonaws.com/dev /another/webhook/route http://localhost:3001/events
 ```
 
 ### FAQ

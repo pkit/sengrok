@@ -7,18 +7,22 @@ export async function clientWebsocket(event) {
       const req = event.req;
       const action = req.action;
       let res;
-      if (action === "subscribe") {
-        res = await subscribe({
-          id: this.connectionId,
-          endpoint: this.endpoint,
-          hook: req.webhook,
-        });
-      } else if (action === "refresh") {
-        res = await refresh(this.connectionId);
-      }else if (action === "unsubscribe") {
-        res = await unsubscribe(this.connectionId);
-      } else {
-        res = { error: `Unknown command: ${action}` };
+      switch (action) {
+        case "subscribe":
+          res = await subscribe({
+            id: this.connectionId,
+            endpoint: this.endpoint,
+            hook: req.webhook,
+          });
+          break;
+        case "refresh":
+          res = await refresh(this.connectionId);
+          break;
+        case "unsubscribe":
+          res = await unsubscribe(this.connectionId);
+          break;
+        default:
+          res = { error: `Unknown command: ${action}` };
       }
       // do not leak connection data
       delete res.id;
@@ -26,7 +30,8 @@ export async function clientWebsocket(event) {
       res.type = "system";
       await this.send(JSON.stringify(res));
     },
-    disconnect: async function ()  {
+    disconnect: async function (event)  {
+      console.log("disconnect event", event);
       await unsubscribe(this.connectionId);
     },
   });
