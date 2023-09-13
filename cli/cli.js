@@ -11,6 +11,9 @@ export class Cli {
       this.program = new commander.Command();
       this.program.name("cli");
     }
+    this.refresher = null;
+    this.ws = null;
+    this.options = {};
   }
 
   run() {
@@ -35,36 +38,8 @@ export class Cli {
   _setupForward() {
     const action = async (url, hook, local) => {
       console.log(`Forwarding: ${hook} -> ${local}`);
-      const ws = new WebSocket(url);
-      ws.on("error", (e) => {
-        console.error(e);
-        process.exit(1);
-      });
-      ws.on("message", async (data) => {
-        const msg = JSON.parse(data.toString());
-        if (msg?.hook === hook) {
-          switch (msg?.type || "") {
-            case "event":
-              fetch(local, {
-                method: "POST",
-                headers: msg.headers,
-                body: msg.body,
-              }).then(res => {
-                console.log("sent", res.statusText);
-              });
-              break;
-            case "system":
-            default:
-              console.log("message", msg);
-          }
-        }
-      });
-      ws.on("open", () => {
-        ws.send(JSON.stringify({
-          action: "subscribe",
-          webhook: hook,
-        }));
-      });
+      this.options = { url, hook, local };
+      this.createWs();
     };
     this.program
       .command("forward")
@@ -73,5 +48,65 @@ export class Cli {
       .argument("<hook>", "hook route to forward from, ex. /github")
       .argument("<local>", "forward to local url, ex. http://localhost:3000/github")
       .action(this.getAction(action));
+  }
+
+  createWs() {
+    if (this.refresher) {
+      clearInterval(this.refresher);
+      this.refresher = null;
+    }
+    this.ws = new WebSocket(this.options.url);
+    const errExit = (e) => {
+      console.error(e);
+      process.exit(1);
+    };
+    // exit on any error while connection is not OPEN
+    this.ws.on("error", errExit);
+    this.ws.on("message", async (data) => {
+      const msg = JSON.parse(data.toString());
+      if (msg?.hook === this.options.hook) {
+        switch (msg?.type || "") {
+          case "event":
+            fetch(this.options.local, {
+              method: "POST",
+              headers: msg.headers,
+              body: msg.body,
+            }).then(res => {
+              console.log("sent", res.statusText);
+            });
+            break;
+          case "system":
+          default:
+            console.log("message", msg);
+        }
+      }
+    });
+    this.ws.on("open", () => {
+      this.ws.send(JSON.stringify({
+        action: "subscribe",
+        webhook: this.options.hook,
+      }));
+      // enable reconnect on any error
+      this.ws.on("error", (e) => {
+        console.log(e);
+        console.log("Reconnecting...");
+        setTimeout(() => this.createWs(), 0);
+      });
+      // disable exit on error
+      this.ws.off("error", errExit);
+      this.startRefresh();
+    });
+  }
+
+  startRefresh() {
+    this.refresher = setInterval(() => {
+      try {
+        this.ws.send(JSON.stringify({
+          action: "refresh",
+        }));
+      } catch (e) {
+        // no-op, should be handled in `ws.on("error", ...)`
+      }
+    }, 1000 * 60 * 5); // 5 min intervals (API GW timeout / 2)
   }
 }

@@ -30,8 +30,7 @@ export async function clientWebsocket(event) {
       res.type = "system";
       await this.send(JSON.stringify(res));
     },
-    disconnect: async function (event)  {
-      console.log("disconnect event", event);
+    disconnect: async function ()  {
       await unsubscribe(this.connectionId);
     },
   });
