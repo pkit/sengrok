@@ -46,7 +46,7 @@ export class Cli {
       .description("forward events from hook to a local service")
       .argument("<url>", "websocket url of a sengrok service")
       .argument("<hook>", "hook route to forward from, ex. /github")
-      .argument("<local>", "forward to local url, ex. http://localhost:3000/github")
+      .argument("[local]", "forward to local url, ex. http://localhost:3000/github")
       .action(this.getAction(action));
   }
 
@@ -67,13 +67,17 @@ export class Cli {
       if (msg?.hook === this.options.hook) {
         switch (msg?.type || "") {
           case "event":
-            fetch(this.options.local, {
-              method: "POST",
-              headers: msg.headers,
-              body: msg.body,
-            }).then(res => {
-              console.log("sent", res.statusText);
-            });
+            if (!this.options.local) {
+              console.log({ type: "event", headers: msg.headers, body: msg.body });
+            } else {
+              fetch(this.options.local, {
+                method: "POST",
+                headers: msg.headers,
+                body: msg.body,
+              }).then(res => {
+                console.log("sent", res.statusText);
+              });
+            }
             break;
           case "system":
           default:
