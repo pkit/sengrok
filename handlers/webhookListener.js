@@ -17,6 +17,8 @@ export async function webhookListener (event, context) {
         const message = {
           type: "event",
           hook: conn.hook,
+          path: event.rawPath,
+          queryString: event.rawQueryString || "",
           headers,
           body: event.body,
         };

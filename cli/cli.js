@@ -70,12 +70,17 @@ export class Cli {
             if (!this.options.local) {
               console.log({ type: "event", headers: msg.headers, body: msg.body });
             } else {
-              fetch(this.options.local, {
+              const suffix = (msg.path || "").substring(msg.hook.length);
+              const qs = msg.queryString ? `?${msg.queryString}` : "";
+              const localUrl = this.options.local.replace(/\/$/, "") + suffix + qs;
+              fetch(localUrl, {
                 method: "POST",
                 headers: msg.headers,
                 body: msg.body,
               }).then(res => {
-                console.log("sent", res.statusText);
+                console.log("sent", localUrl, res.statusText);
+              }).catch(err => {
+                console.error("failed to forward to", localUrl, err.message);
               });
             }
             break;
