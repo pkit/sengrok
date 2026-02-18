@@ -11,7 +11,7 @@
     "@babel/eslint-parser": "^7.22.11",
     "@babel/plugin-transform-modules-commonjs": "^7.22.11",
     "@babel/preset-env": "^7.22.10",
-    "esbuild": "^0.19.2",
+    "esbuild": "^0.27",
     "eslint": "^8.48.0",
     "eslint-plugin-jest": "^27.2.3",
     "serverless": "^3.34.0",
@@ -20,12 +20,12 @@
     "serverless-iam-roles-per-function": "^3.2.0"
   },
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.398.0",
-    "@aws-sdk/client-dynamodb": "^3.398.0",
-    "@aws-sdk/lib-dynamodb": "^3.398.0",
+    "@aws-sdk/client-apigatewaymanagementapi": "^3",
+    "@aws-sdk/client-dynamodb": "^3",
+    "@aws-sdk/lib-dynamodb": "^3",
     "commander": "^11.0.0",
     "node-fetch": "^3.3.2",
-    "ws": "^8.13.0"
+    "ws": "^8"
   },
   "scripts": {
     "prepare": "./cli/build.sh",
