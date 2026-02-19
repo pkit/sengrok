@@ -14,6 +14,7 @@ export class Cli {
     this.refresher = null;
     this.ws = null;
     this.options = {};
+    this.pending = {};
   }
 
   run() {
@@ -50,11 +51,32 @@ export class Cli {
       .action(this.getAction(action));
   }
 
+  handleEvent(msg) {
+    const body = msg.isBase64Encoded ? Buffer.from(msg.body, "base64") : msg.body;
+    if (!this.options.local) {
+      console.log({ type: "event", headers: msg.headers, body: body.toString() });
+    } else {
+      const suffix = (msg.path || "").substring(msg.hook.length);
+      const qs = msg.queryString ? `?${msg.queryString}` : "";
+      const localUrl = this.options.local.replace(/\/$/, "") + suffix + qs;
+      fetch(localUrl, {
+        method: "POST",
+        headers: msg.headers,
+        body,
+      }).then(res => {
+        console.log("sent", localUrl, res.statusText);
+      }).catch(err => {
+        console.error("failed to forward to", localUrl, err.message);
+      });
+    }
+  }
+
   createWs() {
     if (this.refresher) {
       clearInterval(this.refresher);
       this.refresher = null;
     }
+    this.pending = {};
     this.ws = new WebSocket(this.options.url);
     const errExit = (e) => {
       console.error(e);
@@ -64,30 +86,35 @@ export class Cli {
     this.ws.on("error", errExit);
     this.ws.on("message", async (data) => {
       const msg = JSON.parse(data.toString());
-      if (msg?.hook === this.options.hook) {
-        switch (msg?.type || "") {
-          case "event":
-            if (!this.options.local) {
-              console.log({ type: "event", headers: msg.headers, body: msg.body });
-            } else {
-              const suffix = (msg.path || "").substring(msg.hook.length);
-              const qs = msg.queryString ? `?${msg.queryString}` : "";
-              const localUrl = this.options.local.replace(/\/$/, "") + suffix + qs;
-              fetch(localUrl, {
-                method: "POST",
-                headers: msg.headers,
-                body: msg.body,
-              }).then(res => {
-                console.log("sent", localUrl, res.statusText);
-              }).catch(err => {
-                console.error("failed to forward to", localUrl, err.message);
-              });
-            }
-            break;
-          case "system":
-          default:
+      switch (msg?.type || "") {
+        case "event":
+          if (msg?.hook === this.options.hook) {
+            this.handleEvent(msg);
+          }
+          break;
+        case "event-start":
+          if (msg?.hook === this.options.hook) {
+            this.pending[msg.id] = { ...msg, body: "" };
+          }
+          break;
+        case "event-chunk":
+          if (this.pending[msg.id]) {
+            this.pending[msg.id].body += msg.data;
+          }
+          break;
+        case "event-end":
+          if (this.pending[msg.id]) {
+            const complete = this.pending[msg.id];
+            delete this.pending[msg.id];
+            this.handleEvent(complete);
+          }
+          break;
+        case "system":
+        default:
+          if (msg?.hook === this.options.hook) {
             console.log("message", msg);
-        }
+          }
+          break;
       }
     });
     this.ws.on("open", () => {
