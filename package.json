@@ -1,6 +1,6 @@
 {
   "name": "@sengrok/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Self-hosted ngrok-alternative using serverless AWS lambdas. Created for webhook testing.",
   "main": "index.js",
   "repository": "https://github.com/pkit/sengrok",
