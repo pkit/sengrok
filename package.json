@@ -1,5 +1,5 @@
 {
-  "name": "sengrok",
+  "name": "@sengrok/cli",
   "version": "1.0.0",
   "description": "Self-hosted ngrok-alternative using serverless AWS lambdas. Created for webhook testing.",
   "main": "index.js",

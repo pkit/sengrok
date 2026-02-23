@@ -1,0 +1,51 @@
+name: Publish to npm
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Determine version bump
+        id: bump
+        run: |
+          MSG=$(git log -1 --pretty=%B)
+          if echo "$MSG" | grep -qiE '^chore(\(.+\))?:'; then
+            echo "type=none" >> "$GITHUB_OUTPUT"
+          elif echo "$MSG" | grep -qiE 'BREAKING[ -]CHANGE|^[a-z]+(\(.+\))?!:'; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$MSG" | grep -qiE '^feat(\(.+\))?:'; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.bump.outputs.type != 'none'
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - if: steps.bump.outputs.type != 'none'
+        run: npm install -g npm@latest
+      - if: steps.bump.outputs.type != 'none'
+        run: yarn install --frozen-lockfile
+      - name: Bump version and publish
+        if: steps.bump.outputs.type != 'none'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version ${{ steps.bump.outputs.type }} -m "chore(release): v%s"
+          npm publish --provenance --access public
+          git push
+          git push --tags
